@@ -1,0 +1,26 @@
+name: Greetings
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        default: Chicken
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      name:
+        default: Chicken
+        type: string
+
+jobs:
+  say_hello:
+    runs-on: ubuntu-latest
+    steps:
+    # - uses: actions/checkout@v2
+    - name: Print Greetings
+      shell: bash
+      env: 
+        GREETING_NAME: ${{ github.event.inputs.name }}
+      run: |
+        echo "Hello, ${GREETING_NAME}"
