@@ -1,0 +1,97 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      reset_tag:
+        type: boolean
+        default: false
+      release_notes_target:
+        type: string
+        default: "//release:generate_release_notes"
+      update_readme_target:
+        type: string
+        default: "//release:update_readme"
+      base_branch:
+        description: The branch being merged to.
+        type: string
+        default: main
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      reset_tag:
+        type: boolean
+        default: false
+      release_notes_target:
+        type: string
+        default: "//release:generate_release_notes"
+      update_readme_target:
+        type: string
+        default: "//release:update_readme"
+      base_branch:
+        description: The branch being merged to.
+        type: string
+        default: main
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./actions/setup_bazel_cache
+      with:
+        name: bazel_starlib
+    - uses: ./actions/setup_bazel
+    - uses: tibdex/github-app-token@v1
+      id: generate_token
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+    - uses: ./actions/configure_git_user
+
+    - name: Create Release Tag
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        RESET_TAG: ${{ github.event.inputs.reset_tag }}
+      run: |
+        tag_args=()
+        [[ "${RESET_TAG:-}" == true ]] && tag_args+=( "--reset_tag" )
+        tag_args+=( "${RELEASE_TAG}" )
+        bazelisk run //bzlrelease/tools:create_release_tag -- "${tag_args[@]}"
+
+    - name: Generate Release Notes
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        RELEASE_NOTES_TARGET: ${{ github.event.inputs.release_notes_target }}
+      run: |
+        bazelisk run "${RELEASE_NOTES_TARGET}" -- \
+          --output release_notes.md \
+          "${RELEASE_TAG}"
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ github.event.inputs.release_tag }}
+        body_path: release_notes.md
+        tag_name: ${{ github.event.inputs.release_tag }}
+
+    - name: Update the README.md
+      uses: ./actions/update_readme
+      with:
+        release_tag: ${{  github.event.inputs.release_tag }}
+        base_branch: ${{ github.event.inputs.base_branch }}
+        github_token: ${{ steps.generate_token.outputs.token }}
+        update_readme_target: ${{ github.event.inputs.update_readme_target }}
+
