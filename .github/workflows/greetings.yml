@@ -7,7 +7,7 @@ on:
         default: Chicken
         type: string
 
-  workflow_dispatch:
+  workflow_call:
     inputs:
       name:
         default: Chicken
