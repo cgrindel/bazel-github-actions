@@ -25,16 +25,16 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: ./actions/setup_bazel_cache
+    - uses: cgrindel/bazel-github-actions/actions/setup_bazel_cache
       with:
         name: bazel_starlib
-    - uses: ./actions/setup_bazel
+    - uses: cgrindel/bazel-github-actions/actions/setup_bazel
     - uses: tibdex/github-app-token@v1
       id: generate_token
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.APP_PRIVATE_KEY }}
-    - uses: ./actions/configure_git_user
+    - uses: cgrindel/bazel-github-actions/actions/configure_git_user
 
     - name: Create Release Tag
       shell: bash
@@ -68,7 +68,7 @@ runs:
         tag_name: ${{ inputs.release_tag }}
 
     - name: Update the README.md
-      uses: ./actions/update_readme
+      uses: cgrindel/bazel-github-actions/actions/update_readme
       with:
         release_tag: ${{  inputs.release_tag }}
         base_branch: ${{ inputs.base_branch }}
